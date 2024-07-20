@@ -6,7 +6,7 @@ export default class DebugDrawer {
     get color() {
         return this._currentColor
     }
-    constructor({THREE}) {
+    constructor({THREE,count=1000}) {
         let {sin, cos, PI, max, min, abs} = Math;
         let vec3 = (x,y,z)=>new THREE.Vector3(x,y,z)
         let v0 = vec3()
@@ -26,8 +26,8 @@ export default class DebugDrawer {
         this.lines = new THREE.LineSegments(new THREE.BufferGeometry(),material);
         this.lines.frustumCulled = false;
         let geometry = this.geometry = this.lines.geometry;
-        let points = new THREE.BufferAttribute(new Float32Array(3000000),3).setUsage(THREE.DynamicDrawUsage)
-        let colors = new THREE.BufferAttribute(new Float32Array(3000000),3).setUsage(THREE.DynamicDrawUsage)
+        let points = new THREE.BufferAttribute(new Float32Array(count*3),3).setUsage(THREE.DynamicDrawUsage)
+        let colors = new THREE.BufferAttribute(new Float32Array(count*3),3).setUsage(THREE.DynamicDrawUsage)
         geometry.setAttribute('position', points)
         geometry.setAttribute('color', colors)
         let top = 0;

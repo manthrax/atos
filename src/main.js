@@ -9,147 +9,103 @@ window.app = await startApp({
 
 let {dd} = renderer3;
 
-class Fabrik {
-    constructor(constraints) {
-        this.constraints = constraints;
-    }
-    update(steps) {
-        let {constraints} = this;
-        for (let s = 0; s < steps; s++) {
-            for (let i = 0, il = constraints.length; i < il; i++)
-                constraints[i].apply()
-            for (let i = constraints.length - 1, il = 0; i >= il; i--)
-                constraints[i].apply()
-        }
-    }
-}
-
-Fabrik.Node = class {
-    constraints = [];
-    constructor(object) {
-        this.object = object;
-        object.radius = object.scale.x*.5;
-    }
-    add(link) {
-        links.push(link);
-    }
-}
-let v0=vec3();
-let v1=vec3();
-let v2=vec3();
-let {min,max,sin,cos} = Math;
-let grav = .01;
-Fabrik.DistanceConstraint = class {
-    constructor(node, node1, distance) {
-        this.node1 = node1;
-        this.node = node;
-        this.distance = distance || (node.object.position.distanceTo(node1.object.position));
-        this.localPositionA = node1.object.worldToLocal(node.object.position.clone())
-        this.localPositionB = node.object.worldToLocal(node1.object.position.clone())
-    }
-    apply() {
-        let delt = v0.copy(this.node1.object.position).sub(this.node.object.position);
-        let o0=this.node.object;
-        let o1=this.node1.object;
-        delt.setLength(this.distance*.5);
-        let cent = v1.copy(o1.position).add(o0.position).multiplyScalar(.5);
-        o0.position.copy(cent).sub(delt);
-        o1.position.copy(cent).add(delt);
-
-        
-        o0.position.y = max(o0.position.y-grav,o0.radius)
-        o1.position.y = max(o1.position.y-grav,o1.radius)
-        if(o0.height)o0.position.y = max(o0.position.y,o0.height);
-        if(o1.height)o1.position.y = max(o1.position.y,o1.height);
-        
-        this.node.object.updateMatrixWorld()
-        this.node1.object.updateMatrixWorld()
-        this.node1.object.localToWorld(v0.copy(this.localPositionA));
-        this.node.object.position.lerp(v0,.1)
-        this.node.object.localToWorld(v0.copy(this.localPositionB));
-        this.node1.object.position.lerp(v0,.1);
-        this.node.object.updateMatrixWorld()
-        this.node1.object.updateMatrixWorld()
-    }
-}
-
-let geckModel = await gltfLoader.loadAsync('./assets/gecko.glb')
-let nodes = []
-geckModel.scene.updateMatrixWorld(true)
-geckModel.scene.traverse(e=>e.isMesh && nodes.push(new Fabrik.Node(e)));
-
-scene.add(geckModel.scene)
-
-let constraints = []
-let nnodes = nodes.length;
-let sphereDistanceSigned = (s0,s1)=>{
-    return s0.object.position.distanceTo(s1.object.position) - ((s0.object.scale.x + s1.object.scale.x) * .5);
-}
-dd.lines.material.depthTest = false;
-for (let i = 0; i < nnodes; i++) {
-    for (let j = i; j < nnodes; j++) {
-        if (i !== j) {
-            let n1 = nodes[i];
-            let n2 = nodes[j];
-            let sd = sphereDistanceSigned(n1, n2);
-            if (sd < .1) {
-                //console.log("adding", n1.object.name, n2.object.name, sd);
-                let c = new Fabrik.DistanceConstraint(n1,n2);
-                constraints.push(c);
-            }
-        }
-    }
-}
-let findNodes=(names)=>{
-    let nodes={}
-    names.forEach(n=>nodes[n]=geckModel.scene.getObjectByName(n))
-    return nodes;
-}
-let nd = findNodes(['nose','head','chest','hips','footleft','footright','handleft','handright'])
-let k = Object.keys(nd);
-k.forEach(k=>nd[k].height=nd[k].position.y);
-
-nd.head.material.emissive.set(5.,.5,.05);
-nd.head.material.emissiveMap = nd.head.material.map;
-let geck = new Fabrik(constraints)
-
-flow.start(function*() {
-    while (1) {
-        let time = performance.now()/1000;
-        if(buttons.buttons!==2){
-            if(raycasting.raycast(ground)){
-                controls.enabled = false;
-                nd.nose.position.copy(raycasting.hit.point);
-                //hit.point
-            } 
-        }else{
-            controls.enabled = true;
-            v0.set(sin(time*.75),0,cos(time*.55)).multiplyScalar(25);
-            v1.set(cos(time*1.9),0,sin(-time*1.3)).multiplyScalar(25);
-            v2.set(cos(-time*2.9),0,sin(time*1.93)).multiplyScalar(15);
-            nd.nose.position.copy(v0.add(v1).add(v2));
-        }
-        dd.cls();
-        if(0)
-        constraints.forEach(c=>{
-            let {node,node1} = c;
-            dd.moveto(node.object.position);
-            dd.lineto(node1.object.position);
-            
-        })
-        
-        /*
-        let msin = Math.sin(performance.now()/1000);
-        constraints.forEach(c=>{
-            if(!c.baseDistance)c.baseDistance = c.distance;
-            c.distance = c.baseDistance + (msin*c.baseDistance*.5);
-        })
-        */
-        geck.update(6);
-        yield 0;
-    }
-})
-
-//scene.add(new THREE.Mesh(new THREE.SphereGeometry()))//,new THREE.MeshStandardMaterial()));
-
 renderer3.start();
+
+
+//dd.moveto(0,0,0);
+//dd.lineto(100,100,100);
+
+let {abs,min,max}=Math;
+let grav = -.0098;
+function* mt(){}
+class sys{
+	constructor(){
+		this.nodes = []
+	}
+	step(){
+		let i=0,w=0;
+		for(;i<this.nodes.length;i++){
+			let n = this.nodes[i];
+			if(!n.step()){this.nodes[w++]=n}
+		}
+		this.nodes.length = w;
+	}
+	emit(fn=mt){
+		let n = new sys.node(this);
+		flow.start(fn,n);
+		n.velocity.randomDirection();
+		n.velocity.x *= .1;
+		n.velocity.z *= .1;
+		n.velocity.y = abs(n.velocity.y);
+		n.velocity.y *= .4;
+		this.nodes.push(n)
+		return n;
+	}
+}
+sys.node = class {
+
+	constructor(sys){
+		this.sys = sys;
+		this.fuse = 150;
+		this.mass = 1.;
+		this.drag = 0;
+		this.position = vec3()
+		this.velocity = vec3()
+		this.color = (Math.random()*(1<<24))|0
+	}
+	step(){
+		dd.color = this.color;
+		dd.moveto(this.position)
+		this.position.add(this.velocity);
+		dd.lineto(this.position)
+		this.velocity.y += grav*this.mass;
+		this.fuse--;
+		if(this.position.y<0){
+			this.position.y=0-this.position.y;
+			this.velocity.y *= -1.;
+			this.velocity.multiplyScalar(.5);
+		}else{
+			if(this.drag)
+				this.velocity.multiplyScalar(this.drag);			
+		}
+		if(this.fuse<=0)return true
+	}
+}
+
+
+function* shell(shell){
+	shell.velocity.y+=.5;
+	shell.velocity.x*=1.5;
+	shell.velocity.z*=1.5;
+	yield (1900*shell.velocity.y)|0;
+	shell.fuse = 0;
+	function* spark(n){
+		n.position.copy(shell.position);
+		n.velocity.randomDirection().multiplyScalar(.23);
+		n.velocity.add(shell.velocity);
+		n.fuse = 50;
+		n.mass = 0.1;
+		n.drag = .9
+	}
+	for(let i=0;i<50;i++){
+		shell.sys.emit(spark);
+	}
+}
+
+function* launcher(launcher){
+	launcher.velocity.set(0,0,0);
+	while(1){
+		yield 100;
+		launcher.sys.emit(shell)
+	}
+}
+
+let msys = new sys;
+msys.emit(launcher);
+
+flow.start(function*(){
+	while(1){
+		msys.step()
+		yield 0;
+	}
+})

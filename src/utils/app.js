@@ -19,6 +19,7 @@ export default async function startApp({renderer3}) {
 
     let dd = renderer3.dd = new DebugDrawer({
         THREE
+        
     });
     scene.add(dd.lines);
     let v0 = vec3();
@@ -27,7 +28,7 @@ export default async function startApp({renderer3}) {
 
 
     let minCamDist = 1.;
-    let maxCamDist = 30.0;
+    let maxCamDist = 130.0;
     let camDist = 1.9;
     let targetCamDist = camera.position.distanceTo(controls.target);
     let clamp=(v,min,max)=>v<min?min:(v>max)?max:v
@@ -41,6 +42,24 @@ export default async function startApp({renderer3}) {
         camera,controls
     }
 
+    flow.start(function*(){
+        //Make camera chase the 
+        while(1){
+            if(targetCamDist!==camDist){
+                camDist += (targetCamDist-camDist)*.05;
+                camDist = clamp(camDist,minCamDist,maxCamDist)
+                activeControls.camera.position.sub(activeControls.controls.target).setLength(camDist).add(activeControls.controls.target);
+            }
+            yield 0;
+        }
+    })
+    return{
+        activeControls
+    }
+}
+
+let waveDots=()=>{
+    
     let pgeom = new THREE.PlaneGeometry(50,50,100,100)
     let pts = new THREE.Points(pgeom,new THREE.PointsMaterial({
         size:10.2,
@@ -75,18 +94,4 @@ transformed.z = sin(time+(transformed.x*.3))*sin((time*.7)+(transformed.y*.5))*1
     }
     scene.add(pts);
     
-    flow.start(function*(){
-        //Make camera chase the 
-        while(1){
-            if(targetCamDist!==camDist){
-                camDist += (targetCamDist-camDist)*.05;
-                camDist = clamp(camDist,minCamDist,maxCamDist)
-                activeControls.camera.position.sub(activeControls.controls.target).setLength(camDist).add(activeControls.controls.target);
-            }
-            yield 0;
-        }
-    })
-    return{
-        activeControls
-    }
 }
