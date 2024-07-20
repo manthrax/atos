@@ -15,7 +15,8 @@ renderer3.start();
 //dd.moveto(0,0,0);
 //dd.lineto(100,100,100);
 
-let {abs,min,max}=Math;
+let {abs,min,max,random,PI,sin,cos}=Math;
+let rrng=(n=0,p=1)=>(random()*(p-n))+n;
 let grav = -.0098;
 function* mt(){}
 class sys{
@@ -51,10 +52,34 @@ sys.node = class {
 		this.drag = 0;
 		this.position = vec3()
 		this.velocity = vec3()
-		this.color = (Math.random()*(1<<24))|0
+		this.color = (Math.random()*(1<<24))|0;
+		this.prims = new Array(2);
+		this.ptop = 0;
+	}
+	destroyPrim(p){
+		dd.pushtop(p)
+		dd.moveto(0,0,0)
+		dd.lineto(0,0,0)
+		dd.poptop()
+	}
+	dispose(){
+		let t=this.ptop;
+		if(this.ptop>=this.prims.length)t=this.prims.length;
+		for(let i=0;i<t;i++)
+			this.destroyPrim(this.prims[i])		
+		this.fuse = 0;
 	}
 	step(){
 		dd.color = this.color;
+		if(this.ptop>=this.prims.length){
+			let p = this.prims[this.ptop%this.prims.length]
+			dd.pushtop(p)
+			dd.moveto(0,0,0)
+			dd.lineto(0,0,0)
+			dd.poptop()
+		}
+		this.prims[this.ptop%this.prims.length]=dd.top();
+		this.ptop++;
 		dd.moveto(this.position)
 		this.position.add(this.velocity);
 		dd.lineto(this.position)
@@ -68,7 +93,10 @@ sys.node = class {
 			if(this.drag)
 				this.velocity.multiplyScalar(this.drag);			
 		}
-		if(this.fuse<=0)return true
+		if(this.fuse<=0){
+			this.dispose();
+			return true;
+		}
 	}
 }
 
@@ -79,9 +107,10 @@ function* shell(shell){
 	shell.velocity.z*=1.5;
 	yield (1900*shell.velocity.y)|0;
 	shell.fuse = 0;
+	shell.power = rrng(1,2);
 	function* spark(n){
 		n.position.copy(shell.position);
-		n.velocity.randomDirection().multiplyScalar(.23);
+		n.velocity.randomDirection().multiplyScalar(.23 * shell.power);
 		n.velocity.add(shell.velocity);
 		n.fuse = 50;
 		n.mass = 0.1;
@@ -95,7 +124,7 @@ function* shell(shell){
 function* launcher(launcher){
 	launcher.velocity.set(0,0,0);
 	while(1){
-		yield 100;
+		yield 1;
 		launcher.sys.emit(shell)
 	}
 }

@@ -6,7 +6,7 @@ export default class DebugDrawer {
     get color() {
         return this._currentColor
     }
-    constructor({THREE,count=1000}) {
+    constructor({THREE,count=100000}) {
         let {sin, cos, PI, max, min, abs} = Math;
         let vec3 = (x,y,z)=>new THREE.Vector3(x,y,z)
         let v0 = vec3()
@@ -45,6 +45,13 @@ export default class DebugDrawer {
             colors.setXYZ(top%points.count, c.r, c.g, c.b)
             top++;
         }
+        let stack=[]
+        this.poptop=()=>top=stack.pop();
+        this.pushtop=(ntop)=>{
+            stack.push(top);
+            top=ntop;
+        }
+        this.top = ()=>top%points.count;
         let moveto = this.moveto = (p,d,q)=>((d !== undefined) && cursor.set(p, d, q)) || cursor.copy(p)
         let lineto = this.lineto = (p,d,q)=>{
             vt(cursor);
