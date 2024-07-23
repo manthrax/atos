@@ -40,6 +40,16 @@ export default class DebugDrawer {
             colors.needsUpdate = true;
             lastVersion = version;
         }
+        this.lineCol=(c=this._color,scl=1)=>{
+            let r=c.r*scl;
+            let g=c.g*scl;
+            let b=c.b*scl;
+            colors.setXYZ(top%points.count, r,g,b)
+            top++;
+            colors.setXYZ(top%points.count, r,g,b)
+            top++;
+            version++;
+        }
         let vt = (p,c=this._color)=>{
             points.setXYZ(top%points.count, p.x, p.y, p.z)
             colors.setXYZ(top%points.count, c.r, c.g, c.b)

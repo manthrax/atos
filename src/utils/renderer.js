@@ -36,11 +36,11 @@ export default function Renderer() { //{THREE,OrbitControls,RGBELoader,GLTFLoade
     container.appendChild(renderer.domElement);
 
     let scene = this.scene = new Scene();
-    let camera = this.camera = new PerspectiveCamera( 75,  1,  0.001,  100);
+    let camera = this.camera = new PerspectiveCamera( 75,  1,  0.01,  1000);
     scene.add(camera);
     let controls = this.controls = new OrbitControls(camera,renderer.domElement);
-    camera.position.set(-8, 30, -8);
-    controls.target.set(0, 19, 0);
+    camera.position.set(-24., 54., -26.)
+    controls.target.set(0, 40, 0);
     //controls.maxPolarAngle = Math.PI * 0.5;
 
     

@@ -57,6 +57,8 @@ class FlowInstance {
     }
     update(now=performance.now()) {
         //console.log('pnow', performance.now())
+        if(!this.prev)this.prev = now;
+        this.dt=(now-this.prev)/1000;
         if (typeof this.waitCondition == 'number') {
             if (now < this.waitCondition)
                 return 0;
@@ -87,9 +89,10 @@ export class Flow {
         for (let i = 0; i < fl.length; i++) {
             let f = fl[i];
             let wait = f.update(now);
-            if (wait === undefined)
+            if (wait === undefined){
+                f.onDone&&f.onDone();
                 write--;
-            else
+            }else
                 (write !== i) && (fl[write] = fl[i]);
             write++;
         }
